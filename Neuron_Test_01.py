@@ -20,14 +20,21 @@ def simulate_neuron(time_step, neuron_status, input_voltage,
     
     
     if input_voltage > action_voltage:
-        neuron_momentum += (neuron_cached_energy/neuron_energy_storage) * action_impulse * time_step
+        neuron_momentum = neuron_momentum +  (neuron_cached_energy/neuron_energy_storage) * action_impulse * time_step
         neuron_cached_energy -= (neuron_cached_energy/neuron_energy_storage) * action_impulse * time_step
         
     
         
-    neuron_voltage += neuron_momentum * time_step
-    energy_used = (neuron_voltage - base_voltage) * time_step
-    neuron_cached_energy -= energy_used
+    neuron_voltage = neuron_voltage + neuron_momentum * time_step
+    neuron_momentum = 0.99 * neuron_momentum - 0.009 * (neuron_voltage - base_voltage)
+    energy_used = max(0,(neuron_voltage - base_voltage) * time_step)
+    neuron_cached_energy = max(0,neuron_cached_energy-energy_used)
+    if neuron_cached_energy < neuron_energy_storage:
+        if neuron_voltage < 0:
+            neuron_cached_energy += max((5*(base_voltage - neuron_voltage)+1) * time_step,0)
+        neuron_cached_energy += 5*time_step
+        neuron_cached_energy = min(neuron_cached_energy,neuron_energy_storage)
+        
     #neuron_momentum -= 10*(max(0,neuron_energy_storage) - max(0,neuron_cached_energy))
     #neuron_voltage = max(neuron_voltage,0)
     #neuron_momentum = (neuron_momentum - 1 )* 0.5
@@ -35,7 +42,7 @@ def simulate_neuron(time_step, neuron_status, input_voltage,
     
         
     
-    print(neuron_voltage, neuron_momentum)
+    print(neuron_voltage, neuron_momentum, neuron_cached_energy)
     
     
     return [neuron_voltage, neuron_cached_energy, neuron_momentum]
@@ -52,9 +59,10 @@ def simulate_test(time_step, activation_voltage, base_voltage,
     time = []
     log_inputs = []
     log_outputs = []
-    for i in range(1000):
-        input_voltage = base_voltage+200*math.sin(i/100)
-        print(input_voltage)
+    log_energy = []
+    for i in range(5000):
+        input_voltage = base_voltage+150*math.sin(i/50)
+        #print(input_voltage)
         neuron_status = simulate_neuron(time_step, neuron_status, input_voltage, 
                         activation_voltage, base_voltage,action_voltage, 
                         action_impulse, action_energy, neuron_follow_factor)
@@ -62,8 +70,10 @@ def simulate_test(time_step, activation_voltage, base_voltage,
         log_inputs.append(input_voltage)
         log_outputs.append(neuron_status[0])
         time.append(i*time_step)
-    #plt.plot(time,log_inputs)
+        log_energy.append(neuron_status[1])
+    plt.plot(time,log_inputs)
     plt.plot(time,log_outputs)
+    plt.plot(time,log_energy)
     plt.show()
 
 if __name__ == "__main__":
