@@ -78,8 +78,8 @@ def perform_assertions(network_inputs,network_inputs_size,network_inputs_locatio
     assert network_outputs_location[1] + network_outputs_size[1] <= network_height,'outputs mask out of bounds'
     assert network_outputs_location[2] + network_outputs_size[2] <= network_depth,'outputs mask out of bounds'
 
-def create_new_base_network(network_length, network_height, network_depth):
-    network_energy = np.random.rand(network_length, network_height, network_depth)
+def create_new_base_network(network_length, network_height, network_depth, neuron_energy_storage):
+    network_energy = np.random.rand(network_length, network_height, network_depth) * neuron_energy_storage
     network_weights = np.random.rand(network_length, network_height, network_depth)
     network_biases = np.random.rand(network_length, network_height, network_depth)
     #connecting to 8 neurons if network_depth is 1, otherwise connecting to 17 if depth is 2 & 16 if depth is 3.
@@ -92,6 +92,46 @@ def create_new_base_network(network_length, network_height, network_depth):
     network_state = np.zeros((network_length, network_height, network_depth))
     return network_energy, network_connections, network_state, network_weights, network_biases
 
+def activation_func(x):
+    return x
+
+def update_state(network_energy, 
+network_connections, network_state, 
+network_weights, network_biases,time_step, activation_voltage, 
+base_voltage, action_voltage, action_impulse, action_energy,
+neuron_energy_storage, neuron_follow_factor):
+    pass
+    
+
+def model_predict(inputs, input_info, output_info, cycles_per_training_period, 
+              inputs_pulse_interval, network_energy, 
+              network_connections, network_state, 
+              network_weights, network_biases, time_step, activation_voltage, 
+              base_voltage, action_voltage, action_impulse, action_energy,
+              neuron_energy_storage, neuron_follow_factor, default_utilization,
+              utilization_gain_rate, utilization_decay_rate):
+    #inputs: all model info
+    #returns: network state, outputs.
+    average_outputs = []
+    
+    for i in range(cycles_per_training_period):
+        if i%inputs_pulse_interval == 0: #pulse inputs to activation_voltage + 1
+            print(network_state[network_inputs_location[0]:network_inputs_location[0]+network_inputs_size[0],
+                          network_inputs_location[1]:network_inputs_location[1]+network_inputs_size[1],
+                          network_inputs_location[2]:network_inputs_location[2]+network_inputs_size[2]])
+            network_state[network_inputs_location[0]:network_inputs_location[0]+network_inputs_size[0],
+                          network_inputs_location[1]:network_inputs_location[1]+network_inputs_size[1],
+                          network_inputs_location[2]:network_inputs_location[2]+network_inputs_size[2]] = inputs * (activation_voltage + 1)
+    
+        network_energy, network_connections, network_state, network_weights, network_biases = update_state(network_energy, 
+        network_connections, network_state, 
+        network_weights, network_biases,time_step, activation_voltage, 
+        base_voltage, action_voltage, action_impulse, action_energy,
+        neuron_energy_storage, neuron_follow_factor)
+        
+    return network_energy, network_state, average_outputs
+    
+
 if __name__ == "__main__":
     network_inputs = 10 #How many input nodes there are into the network.
     network_inputs_size = (2,5,1) #the shape of the inputs. It could be a line, or it could be a pad. Padded to be rectangular.
@@ -103,8 +143,8 @@ if __name__ == "__main__":
     network_height = 10
     network_depth = 3
     perform_assertions(network_inputs,network_inputs_size,network_inputs_location,network_outputs,network_outputs_size,network_outputs_location,network_length,network_height,network_depth)
-    cycles_per_training_period = 100 #information takes time to move through the network. This is how many itterations will be computed before results are expected
-    
+    cycles_per_training_period = 1000 #information takes time to move through the network. This is how many itterations will be computed before results are expected
+    inputs_pulse_interval = 50 #pulse every X frames.
     #Simulation parameters
     time_step = 0.01 #simulated milliseconds, arbritary realistically.
     #Biology parameters based on https://en.wikipedia.org/wiki/Action_potential
@@ -119,7 +159,7 @@ if __name__ == "__main__":
     utilization_gain_rate = 0.025
     utilization_decay_rate = 0.00005
 
-    network_energy, network_connections, network_state, network_weights, network_biases = create_new_base_network(network_length, network_height, network_depth)
+    network_energy, network_connections, network_state, network_weights, network_biases = create_new_base_network(network_length, network_height, network_depth, neuron_energy_storage)
     training_pairs = import_training_data()
     
     
@@ -127,12 +167,17 @@ if __name__ == "__main__":
     #Start with random values, so let's just evaluate and see what our results are.
     input_info = [network_inputs,network_inputs_size,network_inputs_location]
     output_info = [network_outputs, network_outputs_size, network_outputs_location]
-    model_predict(inputs, input_info, output_info,network_energy, 
-                  network_connections, network_state, 
-                  network_weights, network_biases,time_step, activation_voltage, 
-                  base_voltage, action_voltage, action_impulse, action_energy,
-                  neuron_energy_storage, neuron_follow_factor, default_utilization,
-                  utilization_gain_rate, utilization_decay_rate)
+    for inputs, outputs in training_pairs:
+        print(inputs)
+        inputs = np.array(inputs, dtype=np.float32).reshape(network_inputs_size)
+        print(inputs)
+        model_predict(inputs, input_info, output_info, cycles_per_training_period, 
+                      inputs_pulse_interval, network_energy, 
+                      network_connections, network_state, 
+                      network_weights, network_biases, time_step, activation_voltage, 
+                      base_voltage, action_voltage, action_impulse, action_energy,
+                      neuron_energy_storage, neuron_follow_factor, default_utilization,
+                      utilization_gain_rate, utilization_decay_rate)
     
     
     
