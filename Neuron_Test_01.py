@@ -2,7 +2,7 @@
 """
 Created on Sat Sep  2 16:22:22 2023
 
-@author: Thomas
+@author: Thomas Warnasch
 Okay, so this file is a test demo of a 1-d chain of neurons.
 The goal is to model & plot these functions, and have them work correctly in
 time domain.
@@ -43,7 +43,7 @@ def simulate_neuron(time_step, neuron_status, input_voltage,
         neuron_cached_energy += 5*time_step
         neuron_cached_energy = min(neuron_cached_energy,neuron_energy_storage)
     
-    print(neuron_voltage, neuron_momentum, neuron_cached_energy)
+    #print(neuron_voltage, neuron_momentum, neuron_cached_energy)
     
     
     return [neuron_voltage, neuron_cached_energy, neuron_momentum, neuron_utilization]
